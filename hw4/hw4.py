@@ -6,10 +6,7 @@ def binarize(img, threshold):
 	lena_binarize = img.copy()
 	for i in range(img.shape[0]):
 	    for j in range(img.shape[1]):
-	        if lena_binarize[i][j] < threshold:
-	            lena_binarize[i][j] = 0
-	        else:
-	            lena_binarize[i][j] = 255
+	        lena_binarize[i][j] = 0 if lena_binarize[i][j] < threshold else 255
 	return lena_binarize
 
 def dilation(img, kernel):
@@ -24,16 +21,17 @@ def dilation(img, kernel):
 
 def erosion(img, kernel):
 	lena_erosion = np.zeros(img.shape, dtype=np.int)
+	center = 255 if [0,0] in kernel else 0
 	for i in range(img.shape[0]):
 		for j in range(img.shape[1]):
-			if(img[i][j]==255):
+			if(img[i][j]==center):
 				fit = True
 				for k, l in kernel:
 					if ((i+k)<0 or (j+l)<0 or (i+k)>=img.shape[0] or (j+l)>=img.shape[1] or img[i+k][j+l]==0):
 						fit = False
 						break
 				if fit:
-					lena_erosion[i+k][j+l] = 255;
+					lena_erosion[i][j] = 255;
 	return lena_erosion
 
 def opening(img, kernel):
@@ -49,7 +47,6 @@ def hit_miss(img, J, K):
 		for j in range(img.shape[1]):
 			if(img[i][j]==0):
 				com_img[i][j]=255
-	
 	er1 = erosion(img, J)
 	er2 = erosion(com_img, K)
 	for i in range(img.shape[0]):
