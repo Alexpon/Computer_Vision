@@ -1,6 +1,6 @@
 import numpy as np
 import cv2 as cv2
-
+import math as mh
 def main():
 	img = cv2.imread('lena.bmp', 0)
 
@@ -42,21 +42,6 @@ def main():
 								]
 
 	
-
-	sobel_threshold = 38
-	sobel_kernel_s1 =	[
-							[-1,-1,-1], [ 0,-1,-2], [ 1,-1,-1],
-							[-1, 0, 0], [ 0, 0, 0], [ 1, 0, 0],
-							[-1, 1, 1], [ 0, 1, 2], [ 1, 1, 1],
-						]
-	sobel_kernel_s2 =	[
-							[-1,-1,-1], [ 0,-1, 0], [ 1,-1, 1],
-							[-1, 0,-2], [ 0, 0, 0], [ 1, 0, 2],
-							[-1, 1,-1], [ 0, 1, 0], [ 1, 1, 1],
-						]
-
-
-	
 	print ('High Quality Laplacian Processing...')
 	lena_laplacian_h = edge_detector(img, laplacian_high_kernel, laplacian_threshold, laplacian_high_nor)
 	cv2.imwrite('lena_laplacian_h.bmp', lena_laplacian_h)
@@ -76,7 +61,15 @@ def main():
 	lena_gaussian_laplacian = edge_detector(img, laplacian_gaussian_kernel, laplacian_gaussian_threshold)
 	cv2.imwrite('lena_gaussian_laplacian.bmp', lena_gaussian_laplacian)
 	print ('Done!\n')
-
+	
+	k1 = get_LoG_kernel(1.0, scale=-150)
+	k2 = get_LoG_kernel(3.0, scale=-5)
+	dog_threshold = 7000
+	print ('Difference of Gaussian Processing...')
+	lena_DoG = DoG_edge_detector(img, k1, k2, dog_threshold)
+	cv2.imwrite('lena_DoG.bmp', lena_DoG)
+	print ('Done!\n')
+	
 	print ('All task are finish!')
 
 def edge_detector(img, kernel, threshold, normalizer=1.0):
@@ -95,6 +88,38 @@ def edge_detector(img, kernel, threshold, normalizer=1.0):
 
 	return img_edge
 
+def get_LoG_kernel(variance, size=11, scale=-100):
+	kernel = []
+	for i in range(size):
+		for j in range(size):
+			val = scale*(((i-5)**2 + (j-5)**2 - 2*variance**2)/variance**4) * mh.exp(-1*((i-5)**2+(j-5)**2)/(2*variance**2))
+			val = 0 if abs(val)<0.01 else val
+			kernel.append([i-5, j-5, val])
+	return kernel
+
+def DoG_edge_detector(img, k1, k2, threshold):
+	img_edge = np.zeros((img.shape[0], img.shape[1]), dtype=int)
+	for i in range(img.shape[0]):
+		for j in range(img.shape[1]):
+			tmp1_sum = 0
+			tmp2_sum = 0
+			
+			for [x1, x2, w] in k1:
+				a1 = -i-x1-1 if i+x1<0 else i+x1
+				a1 = 2*img.shape[0]-i-x1-1 if i+x1>=img.shape[0] else i+x1
+				a2 = -j-x2-1 if j+x2<0 else j+x2
+				a2 = 2*img.shape[1]-j-x2-1 if j+x2>=img.shape[1] else j+x2
+				tmp1_sum += img[a1][a2]*w
+
+			for [x1, x2, w] in k2:
+				a1 = -i-x1-1 if i+x1<0 else i+x1
+				a1 = 2*img.shape[0]-i-x1-1 if i+x1>=img.shape[0] else i+x1
+				a2 = -j-x2-1 if j+x2<0 else j+x2
+				a2 = 2*img.shape[1]-j-x2-1 if j+x2>=img.shape[1] else j+x2
+				tmp2_sum += img[a1][a2]*w
+
+			img_edge[i][j] = 0 if abs(tmp1_sum-tmp2_sum) >= threshold else 255
+	return img_edge
 
 if __name__ == '__main__':
     main()
